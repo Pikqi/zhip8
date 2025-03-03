@@ -6,10 +6,20 @@ pub const memory_size = 4096;
 pub const Ram = struct {
     memory: [memory_size]u8 = undefined,
     end_index: usize = 0,
+    program_start: usize = 0,
 
     pub fn load_font(self: *Ram) void {
         std.mem.copyForwards(u8, self.memory[font_start .. font_start + font.len], &font);
         self.end_index = font_start + font.len;
+    }
+
+    pub fn load(self: *Ram, data: []const u8) usize {
+        self.end_index = @max(self.end_index, 512);
+        std.mem.copyForwards(u8, self.memory[self.end_index .. self.end_index + data.len], data);
+
+        self.program_start = self.end_index;
+        self.end_index += data.len;
+        return self.program_start;
     }
 
     pub fn print(self: *const Ram, config: PrintConfig) void {

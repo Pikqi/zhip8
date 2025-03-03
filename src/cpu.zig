@@ -5,7 +5,7 @@ pub const Cpu = struct {
         std.debug.print("cpu: {}", .{s});
     }
     I: u16 = undefined,
-    r: [16]u8 = undefined,
+    V: [16]u8 = undefined,
     // s: std.
 };
 
