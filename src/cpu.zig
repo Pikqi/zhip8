@@ -6,7 +6,9 @@ pub const Cpu = struct {
     }
     I: u16 = undefined,
     V: [16]u8 = undefined,
-    // s: std.
+    stack: Stack(20, u16) = .{},
+    delay_timer: u8 = 0xFF,
+    sound_timer: u8 = 0,
 };
 
 const StackError = error{ StackEmpty, StackFull };
