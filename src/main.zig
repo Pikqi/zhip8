@@ -19,6 +19,10 @@ const WINDOW_HEIGHT = 320;
 const BACKGROUND_COLOR = rl.WHITE;
 const PIXEL_COLOR = rl.GREEN;
 
+const MHZ = 700;
+const instructionTime = std.time.ns_per_s / MHZ;
+
+const debug = true;
 pub fn main() !void {
     var prng = std.Random.DefaultPrng.init(blk: {
         var seed: u64 = undefined;
@@ -39,7 +43,10 @@ pub fn main() !void {
 
     rl.InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "zhip8");
 
+    const programStartTime = std.time.nanoTimestamp();
+
     while (true) {
+        const cycleStartTime: u64 = @intCast(std.time.nanoTimestamp() - programStartTime);
         var jumped: bool = false;
         defer pc = if (pc < r.end_index and !jumped) pc + 2 else pc;
         var instruction: u16 = r.memory[pc];
@@ -302,7 +309,17 @@ pub fn main() !void {
         }
 
         // g.print();
-        std.time.sleep(1000 * 1000 * 1);
+        const endTime: u64 = @intCast(std.time.nanoTimestamp() - programStartTime);
+        const delta = endTime - cycleStartTime;
+        var sleep: u64 = 0;
+        if (delta < instructionTime) {
+            sleep = instructionTime - delta;
+            std.time.sleep(sleep);
+        }
+        if (debug) {
+            std.log.debug("instruction: {X:04}", .{instruction});
+            std.log.debug("delta : {d}us delay: {d}us\n", .{ delta / std.time.ns_per_us, sleep / std.time.ns_per_us });
+        }
     }
 }
 
