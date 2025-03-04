@@ -3,7 +3,21 @@ const std = @import("std");
 const cpu = @import("cpu.zig");
 const ram = @import("ram.zig");
 const gpu = @import("gpu.zig");
-const ibm = @embedFile("roms/IBM Logo.ch8");
+const rom = @embedFile("roms/RPS.ch8");
+
+const rl = @cImport({
+    @cInclude("raylib.h");
+    @cInclude("raymath.h");
+    @cInclude("rlgl.h");
+});
+
+const PIXEL_SCALE = 10;
+
+const WINDOW_WIDTH = 640;
+const WINDOW_HEIGHT = 320;
+
+const BACKGROUND_COLOR = rl.WHITE;
+const PIXEL_COLOR = rl.GREEN;
 
 pub fn main() !void {
     var prng = std.Random.DefaultPrng.init(blk: {
@@ -17,12 +31,13 @@ pub fn main() !void {
     var c = cpu.Cpu{};
     var r = ram.Ram{};
     r.load_font();
-    pc = r.load(ibm);
-    // std.debug.print("pc {d}", .{pc});
+    pc = r.load(rom);
 
     r.print(.{});
 
     var g = gpu.Gpu{};
+
+    rl.InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "zhip8");
 
     while (true) {
         var jumped: bool = false;
@@ -195,6 +210,8 @@ pub fn main() !void {
             },
             //draw DXYN
             0xD000 => {
+                defer draw_raylib(&g);
+
                 var x_coord: usize = c.V[X] & (gpu.SCREEEN_WIDTH - 1);
                 var y_coord: usize = c.V[Y] & (gpu.SCREEEN_HEIGHT - 1);
                 // std.debug.print("x: {d} y: {d}\n", .{ x_coord, y_coord });
@@ -248,6 +265,7 @@ pub fn main() !void {
                     // FX0A Get key input
                     0x0A => {
                         // std.debug.print("Get key\n", .{});
+                        jumped = true;
                     },
                     //FX29 Set Font character. set I to address of character X
                     0x29 => {
@@ -283,10 +301,26 @@ pub fn main() !void {
             },
         }
 
-        g.print();
-        std.Thread.sleep(1000 * 1000 * 1);
+        // g.print();
+        std.time.sleep(1000 * 1000 * 1);
     }
 }
+
+fn draw_raylib(g: *const gpu.Gpu) void {
+    rl.BeginDrawing();
+    defer rl.EndDrawing();
+    rl.ClearBackground(BACKGROUND_COLOR);
+    rl.DrawFPS(10, WINDOW_HEIGHT - 30);
+
+    for (g.display, 0..) |pixel, i| {
+        const x = (i & (gpu.SCREEEN_WIDTH - 1)) * PIXEL_SCALE;
+        const y = (i / gpu.SCREEEN_WIDTH) * PIXEL_SCALE;
+        if (pixel) {
+            rl.DrawRectangle(@intCast(x), @intCast(y), PIXEL_SCALE, PIXEL_SCALE, PIXEL_COLOR);
+        }
+    }
+}
+
 fn not_implemented(instruction: u16) void {
     std.debug.print("Not implemented {X:04}\n", .{instruction});
 }
