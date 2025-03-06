@@ -1,4 +1,5 @@
 const std = @import("std");
+const raylib_build = @import("raylib");
 
 // Although this function looks imperative, note that its job is to
 // declaratively construct a build graph that will be executed by an external
@@ -24,12 +25,22 @@ pub fn build(b: *std.Build) void {
         .target = target,
     });
 
-    const ray_dep = b.dependency("raylib", .{
+    const raylib_dep = b.dependency("raylib", .{
+        .target = target,
+        .optimize = optimize,
+        .shared = true,
+    });
+    const raylib = raylib_dep.artifact("raylib");
+
+    const raygui_dep = b.dependency("raygui", .{
         .target = target,
         .optimize = optimize,
     });
+    raylib_build.addRaygui(b, raylib, raygui_dep);
+    raylib.addIncludePath(raylib_dep.path("src"));
+    // raylib.addRaygui(b, raylib_dep.artifact("raylib"), raygui_dep);
 
-    exe.linkLibrary(ray_dep.artifact("raylib"));
+    exe.linkLibrary(raylib);
 
     // This declares intent for the executable to be installed into the
     // standard location when the user invokes the "install" step (the default
@@ -66,7 +77,7 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
-    exe_check.linkLibrary(ray_dep.artifact("raylib"));
+    exe_check.linkLibrary(raylib_dep.artifact("raylib"));
 
     const check = b.step("check", "Check if project compiles");
     check.dependOn(&exe_check.step);

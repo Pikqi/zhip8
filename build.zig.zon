@@ -28,6 +28,10 @@
             .url = "git+https://github.com/raysan5/raylib?ref=5.5#c1ab645ca298a2801097931d1079b10ff7eb9df8",
             .hash = "1220d93782859726c2c46a05450615b7edfc82b7319daac50cbc7c3345d660b022d7",
         },
+        .raygui = .{
+            .url = "git+https://github.com/raysan5/raygui#9a95871701a5fc63bea35eab73fef6414e048b73",
+            .hash = "122069ba45cdcb6eef6a3429ca23eb119a55ea338bcc8ebe3ad73f01d7f8129204e5",
+        },
     },
     .paths = .{
         "build.zig",
