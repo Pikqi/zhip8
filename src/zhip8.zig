@@ -40,8 +40,11 @@ pub const Zhip8 = struct {
         self.init_pc = self.ram.load(rom);
         self.pc = self.init_pc;
     }
-    pub fn loadRomByPath(path_to_rom: []u8) void {
-        _ = path_to_rom; // autofix
+    pub fn loadRomByPath(self: *Zhip8, path_to_rom: []u8) !void {
+        const rom_file = try std.fs.openFileAbsolute(path_to_rom, .{});
+        var buffer: [4096]u8 = undefined;
+        const end_pos = try rom_file.readAll(&buffer);
+        self.pc = self.ram.load(buffer[0..end_pos]);
     }
 
     pub fn step_for(self: *Zhip8, step_count: u16) void {
@@ -60,7 +63,7 @@ pub const Zhip8 = struct {
         const instructionTime = std.time.ns_per_s / @as(u64, @intFromFloat(self.clock_speed));
         const cycleStartTime: u64 = @intCast(std.time.nanoTimestamp() - self.start_time);
         var jumped: bool = false;
-        defer self.pc = if (self.pc < self.ram.end_index and !jumped) self.pc + 2 else self.pc;
+        defer self.pc = if (self.pc < self.ram.memory.len and !jumped) self.pc + 2 else self.pc;
         var instruction: u16 = self.ram.memory[self.pc];
         instruction <<= 8;
         instruction += self.ram.memory[self.pc + 1];

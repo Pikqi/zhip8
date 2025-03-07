@@ -2,7 +2,7 @@ const std = @import("std");
 
 const zhip = @import("zhip8.zig");
 const gpu = @import("gpu.zig");
-const rom = @embedFile("roms/RPS.ch8");
+const rom = @embedFile("roms/IBM Logo.ch8");
 
 const rl = @cImport({
     @cInclude("raylib.h");
@@ -24,14 +24,31 @@ const debug = true;
 var GUI_ENABLE = false;
 
 const TEXT_SIZE = 20;
+const RomList = std.ArrayList([]const u8);
+
+const RomSelection = struct {
+    rom_loaded: ?[]const u8 = null,
+    romList: RomList,
+    pub fn deinit(self: *RomSelection) void {
+        self.romList.deinit();
+    }
+};
 
 pub fn main() !void {
+    // var romLoaded = false;
     var prng = std.Random.DefaultPrng.init(blk: {
         var seed: u64 = undefined;
         try std.posix.getrandom(std.mem.asBytes(&seed));
         break :blk seed;
     });
     const rand = prng.random();
+
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    const alloc = gpa.allocator();
+    defer _ = gpa.deinit();
+
+    var rom_selection = RomSelection{ .romList = RomList.init(alloc) };
+    defer rom_selection.deinit();
     var zhip8 = zhip.Zhip8.init(rand);
     zhip8.loadRomBytes(rom);
 
@@ -39,10 +56,30 @@ pub fn main() !void {
     rl.InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "zhip8");
     rl.GuiSetStyle(rl.DEFAULT, rl.TEXT_SIZE, TEXT_SIZE);
 
+    const iter_dir = try std.fs.cwd().openDir("roms", .{ .iterate = true });
+    var iter = iter_dir.iterate();
+    while (try iter.next()) |file| {
+        if (file.kind == .file) {
+            std.debug.print("filename: {s}\n", .{file.name});
+            try rom_selection.romList.append(file.name);
+        }
+    }
+
     while (!rl.WindowShouldClose()) {
-        try zhip8.mainLoop();
-        try draw_raylib(&zhip8);
-        // g.print();
+        if (rom_selection.rom_loaded == null) {
+            try draw_select_roms(&rom_selection, alloc);
+            if (rom_selection.rom_loaded != null) {
+                var buff: [200]u8 = undefined;
+                const path = try std.mem.concat(alloc, u8, &.{ "roms/", rom_selection.rom_loaded.? });
+                try zhip8.loadRomByPath(try std.fs.cwd().realpath(path, &buff));
+                alloc.free(path);
+                zhip8.resetRom();
+            }
+        } else {
+            try zhip8.mainLoop();
+            try draw_raylib(&zhip8, &rom_selection);
+            // g.print();
+        }
     }
 }
 
@@ -50,8 +87,27 @@ const GUI_WIDHT = 400;
 const GUI_MARGIN = 20;
 const GUI_BASE_HEIGHT = 20;
 
+fn draw_select_roms(romSelection: *RomSelection, alloc: std.mem.Allocator) !void {
+    rl.BeginDrawing();
+    defer rl.EndDrawing();
+    rl.ClearBackground(BACKGROUND_COLOR);
+    rl.DrawFPS(10, WINDOW_HEIGHT - 30);
+    var y: f32 = 10;
+
+    for (romSelection.romList.items, 0..) |value, i| {
+        _ = i; // autofix
+        const valueZ = try alloc.dupeZ(u8, value);
+        defer alloc.free(valueZ);
+
+        if (rl.GuiButton(.{ .x = 100, .y = y, .width = WINDOW_WIDTH / 2, .height = 50 }, valueZ) > 0) {
+            romSelection.rom_loaded = value;
+        }
+        y += 50;
+    }
+}
+
 var gridVec = rl.Vector2{ .x = 0, .y = 0 };
-fn draw_raylib(zhip8: *zhip.Zhip8) !void {
+fn draw_raylib(zhip8: *zhip.Zhip8, rom_selection: *RomSelection) !void {
     rl.BeginDrawing();
     defer rl.EndDrawing();
     rl.ClearBackground(BACKGROUND_COLOR);
@@ -120,6 +176,16 @@ fn draw_raylib(zhip8: *zhip.Zhip8) !void {
         .height = GUI_BASE_HEIGHT * 2,
     }, "Step +10") > 0) {
         zhip8.step_for(1);
+    }
+    new_row(&y);
+    new_row(&y);
+    if (rl.GuiButton(.{
+        .x = GUI_MARGIN,
+        .y = y,
+        .width = GUI_BASE_HEIGHT * 5,
+        .height = GUI_BASE_HEIGHT * 2,
+    }, "Eject") > 0) {
+        rom_selection.rom_loaded = null;
     }
 
     new_row(&y);
