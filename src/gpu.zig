@@ -6,6 +6,7 @@ const DISPLAY = [NUMBER_OF_PIXELS]bool;
 
 pub const Gpu = struct {
     display: DISPLAY = std.mem.zeroes(DISPLAY),
+    need_to_render: bool = false,
 
     pub fn clear(self: *Gpu) void {
         std.log.debug("Display cleared \n", .{});

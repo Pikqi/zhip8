@@ -7,7 +7,7 @@ pub const Cpu = struct {
     I: u16 = undefined,
     V: [16]u8 = undefined,
     stack: Stack(20, u16) = .{},
-    delay_timer: u8 = 0xFF,
+    delay_timer: u8 = 0,
     sound_timer: u8 = 0,
 };
 

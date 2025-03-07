@@ -4,6 +4,8 @@ const gpu = @import("gpu.zig");
 const ram = @import("ram.zig");
 const Random = std.Random;
 
+const delay_timer_tick = std.time.ns_per_s / 60;
+
 pub const Zhip8 = struct {
     ram: ram.Ram,
     cpu: cpu.Cpu,
@@ -11,13 +13,17 @@ pub const Zhip8 = struct {
 
     rng: Random,
 
+    input: u8 = 0,
+    is_input_pressed: bool = false,
+
     pc: usize = 0,
-    init_pc: usize = 0,
+    init_pc: usize = 512,
     is_paused: bool = false,
     clock_speed: f32 = 700,
 
     step_count: u16 = 0,
     start_time: i128,
+    last_delay_tick_time: u64 = 0,
 
     debug_to_console: bool = true,
 
@@ -34,6 +40,7 @@ pub const Zhip8 = struct {
         self.start_time = std.time.nanoTimestamp();
         self.gpu.clear();
         self.is_paused = false;
+        self.last_delay_tick_time = 0;
     }
     pub fn loadRomBytes(self: *Zhip8, rom: []const u8) void {
         self.resetRom();
@@ -41,10 +48,12 @@ pub const Zhip8 = struct {
         self.pc = self.init_pc;
     }
     pub fn loadRomByPath(self: *Zhip8, path_to_rom: []u8) !void {
+        std.log.debug("path to rom: {s}", .{path_to_rom});
         const rom_file = try std.fs.openFileAbsolute(path_to_rom, .{});
         var buffer: [4096]u8 = undefined;
         const end_pos = try rom_file.readAll(&buffer);
-        self.pc = self.ram.load(buffer[0..end_pos]);
+        self.init_pc = self.ram.load(buffer[0..end_pos]);
+        self.pc = self.init_pc;
     }
 
     pub fn step_for(self: *Zhip8, step_count: u16) void {
@@ -54,6 +63,7 @@ pub const Zhip8 = struct {
 
     pub fn mainLoop(self: *Zhip8) !void {
         if (self.is_paused and self.step_count == 0) {
+            self.last_delay_tick_time = @intCast(std.time.nanoTimestamp() - self.start_time);
             return;
         }
         if (self.step_count > 0) {
@@ -210,6 +220,27 @@ pub const Zhip8 = struct {
                     },
                 }
             },
+            0xE000 => {
+                switch (instruction & 0x00FF) {
+
+                    // EX9E skip if key
+                    0x009E => {
+                        if (self.is_input_pressed) {
+                            if (self.input == self.cpu.V[X]) {
+                                self.pc += 2;
+                            }
+                        }
+                    },
+                    0x00A1 => {
+                        if (self.is_input_pressed) {
+                            if (self.input != self.cpu.V[X]) {
+                                self.pc += 2;
+                            }
+                        }
+                    },
+                    else => not_implemented(instruction),
+                }
+            },
             // 9XY0  skip one instruction if VX is not equal to VY
             0x9000 => {
                 if (self.cpu.V[X] != self.cpu.V[Y]) {
@@ -233,6 +264,7 @@ pub const Zhip8 = struct {
             //draw DXYN
             0xD000 => {
                 // defer draw_raylib(&self.gpu);
+                self.gpu.need_to_render = true;
 
                 var x_coord: usize = self.cpu.V[X] & (gpu.SCREEEN_WIDTH - 1);
                 var y_coord: usize = self.cpu.V[Y] & (gpu.SCREEEN_HEIGHT - 1);
@@ -287,7 +319,13 @@ pub const Zhip8 = struct {
                     // FX0A Get key input
                     0x0A => {
                         // std.debug.print("Get key\n", .{});
-                        jumped = true;
+                        if (self.is_input_pressed) {
+                            self.cpu.V[X] = self.input;
+                            self.is_input_pressed = false;
+                            std.debug.print("pressed :{X:01}! \n", .{self.input});
+                        } else {
+                            jumped = true;
+                        }
                     },
                     //FX29 Set Font character. set I to address of character X
                     0x29 => {
@@ -322,20 +360,44 @@ pub const Zhip8 = struct {
                 not_implemented(instruction);
             },
         }
+
+        //timing
         const endTime: u64 = @intCast(std.time.nanoTimestamp() - self.start_time);
         const delta = endTime - cycleStartTime;
         var sleep: u64 = 0;
+
+        if (self.last_delay_tick_time == 0) {
+            self.last_delay_tick_time = endTime;
+            if (self.cpu.delay_timer > 0) self.cpu.delay_timer -= 1;
+        } else {
+            const delay_tick_delta = endTime - self.last_delay_tick_time;
+            if (delay_tick_delta > delay_timer_tick) {
+                self.last_delay_tick_time = endTime;
+                self.cpu.delay_timer, const overflow = @subWithOverflow(self.cpu.delay_timer, @as(u8, @intCast(delay_tick_delta / delay_timer_tick)));
+                if (overflow > 0) {
+                    self.cpu.delay_timer = 0;
+                }
+            }
+        }
+
+        if (self.cpu.delay_timer > 0) {
+            self.cpu.delay_timer -= @truncate(delta / delay_timer_tick);
+        }
+
         if (delta < instructionTime) {
             sleep = instructionTime - delta;
             std.time.sleep(sleep);
         }
         if (self.debug_to_console) {
+            // std.log.debug("input: {d} input_pressed: {}", .{ self.input, self.is_input_pressed });
             std.log.debug("pc: {d} instruction: {X:04}", .{ self.pc, instruction });
-            std.log.debug("delta : {d}us delay: {d}us\n", .{ delta / std.time.ns_per_us, sleep / std.time.ns_per_us });
+            std.log.debug("delta : {d}us delay: {d}us", .{ delta / std.time.ns_per_us, sleep / std.time.ns_per_us });
+            std.log.debug("timer: {d}\n", .{self.cpu.delay_timer});
         }
+        self.is_input_pressed = false;
     }
 
-    fn not_implemented(instruction: u16) void {
+    inline fn not_implemented(instruction: u16) void {
         std.debug.print("Not implemented {X:04}\n", .{instruction});
     }
 };
