@@ -2,7 +2,9 @@ const std = @import("std");
 pub const SCREEEN_WIDTH = 64;
 pub const SCREEEN_HEIGHT = 32;
 pub const NUMBER_OF_PIXELS = SCREEEN_WIDTH * SCREEEN_HEIGHT;
-const DISPLAY = [NUMBER_OF_PIXELS]bool;
+
+const PIXEL_STATE = enum(u3) { OFF, FADING, ON };
+const DISPLAY = [NUMBER_OF_PIXELS]PIXEL_STATE;
 
 pub const Gpu = struct {
     display: DISPLAY = std.mem.zeroes(DISPLAY),

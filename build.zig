@@ -68,17 +68,17 @@ pub fn build(b: *std.Build) void {
     const run_step = b.step("run", "Run the app");
     run_step.dependOn(&run_cmd.step);
 
-    // Check step - used by zls to show errors on build
-    const exe_check = b.addExecutable(.{
-        .name = "check_step",
-        .root_source_file = b.path("src/main.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
-    exe_check.linkLibrary(raylib_dep.artifact("raylib"));
-
-    const check = b.step("check", "Check if project compiles");
-    check.dependOn(&exe_check.step);
+    // // Check step - used by zls to show errors on build
+    // const exe_check = b.addExecutable(.{
+    //     .name = "check_step",
+    //     .root_source_file = b.path("src/main.zig"),
+    //     .target = target,
+    //     .optimize = optimize,
+    // });
+    // exe_check.linkLibrary(raylib_dep.artifact("raylib"));
+    //
+    // const check = b.step("check", "Check if project compiles");
+    // check.dependOn(&exe_check.step);
 
     const test_step = b.step("test", "Run all tests");
     const ram_test = b.addTest(.{ .root_source_file = b.path("src/ram.zig") });

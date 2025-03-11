@@ -282,11 +282,11 @@ pub const Zhip8 = struct {
                         const b: u8 = row_pixels & (0b10000000 >> j);
                         // std.log.debug("b: {d} row_pixels: {b:08} {b:08} \n", .{ b, row_pixels, 0b10000000 >> j });
 
-                        if (self.gpu.display[pixel_index] and b > 0) {
-                            self.gpu.display[pixel_index] = false;
+                        if (self.gpu.display[pixel_index] == .ON and b > 0) {
+                            self.gpu.display[pixel_index] = .FADING;
                             self.cpu.V[0xF] = 1;
                         } else if (b > 0) {
-                            self.gpu.display[pixel_index] = true;
+                            self.gpu.display[pixel_index] = .ON;
                         }
 
                         x_coord += 1;

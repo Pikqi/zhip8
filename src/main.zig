@@ -17,6 +17,8 @@ const BACKGROUND_COLOR = rl.WHITE;
 const WINDOW_HEIGHT = PIXEL_SCALE * gpu.SCREEEN_HEIGHT;
 
 const PIXEL_COLOR = rl.GREEN;
+// const PIXEL_FADE_COLOR: rl.Color = .{ .a = PIXEL_COLOR.a / 10 * 5, .b = PIXEL_COLOR.b, .g = PIXEL_COLOR.g, .r = PIXEL_COLOR.r };
+const PIXEL_FADE_COLOR: rl.Color = PIXEL_COLOR;
 
 const TEXT_SIZE = 20;
 const RomList = std.ArrayList([]const u8);
@@ -212,8 +214,11 @@ fn draw_raylib(zhip8: *zhip.Zhip8, rom_selection: *RomSelection) !void {
         for (zhip8.gpu.display, 0..) |pixel, i| {
             const x = x_offset + (i & (gpu.SCREEEN_WIDTH - 1)) * PIXEL_SCALE;
             const y = (i / gpu.SCREEEN_WIDTH) * PIXEL_SCALE;
-            if (pixel) {
+            if (pixel == .ON) {
                 rl.DrawRectangle(@intCast(x), @intCast(y), PIXEL_SCALE, PIXEL_SCALE, PIXEL_COLOR);
+            } else if (pixel == .FADING) {
+                rl.DrawRectangle(@intCast(x), @intCast(y), PIXEL_SCALE, PIXEL_SCALE, PIXEL_FADE_COLOR);
+                zhip8.gpu.display[i] = .OFF;
             }
         }
     }
