@@ -6,8 +6,8 @@
     //
     // It is redundant to include "zig" in this name because it is already
     // within the Zig package namespace.
-    .name = "zhip8",
-    // .fingerprint = 0xcbe9e1582188be4a,
+    .name = .zhip8,
+    .fingerprint = 0xcbe9e158dfcc0e10,
 
     // This is a [Semantic Version](https://semver.org/).
     // In a future version of Zig it will be used for package deduplication.
@@ -25,8 +25,8 @@
     // internet connectivity.
     .dependencies = .{
         .raylib = .{
-            .url = "git+https://github.com/raysan5/raylib?ref=5.5#c1ab645ca298a2801097931d1079b10ff7eb9df8",
-            .hash = "1220d93782859726c2c46a05450615b7edfc82b7319daac50cbc7c3345d660b022d7",
+            .url = "git+https://github.com/raysan5/raylib#b80250bee4a059be9ddeab1cb5d57adf21b6905c",
+            .hash = "raylib-5.5.0-whq8uHpozQDmhtzaISPMqmkjs7g1mCjohOB9mATgCM4N",
         },
         .raygui = .{
             .url = "git+https://github.com/raysan5/raygui#9a95871701a5fc63bea35eab73fef6414e048b73",

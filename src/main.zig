@@ -288,7 +288,7 @@ fn draw_raylib(zhip8: *zhip.Zhip8, rom_selection: *RomSelection) !void {
     var reg_x: f32 = -registerWidth + GUI_MARGIN;
     var str: [8]u8 = undefined;
     for (zhip8.cpu.V, 0..) |value, i| {
-        _ = try std.fmt.bufPrintZ(&str, "{X:01}:{X:04}", .{ i, value });
+        _ = try std.fmt.bufPrintZ(&str, "{X:01}:{X:02}", .{ i, value });
         const row = (registerWidth * i) / GUI_WIDHT;
         const reg_y = y + @as(f32, @floatFromInt(GUI_BASE_HEIGHT * row));
         reg_x += registerWidth;

@@ -37,8 +37,6 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
     raylib_build.addRaygui(b, raylib, raygui_dep);
-    raylib.addIncludePath(raylib_dep.path("src"));
-    // raylib.addRaygui(b, raylib_dep.artifact("raylib"), raygui_dep);
 
     exe.linkLibrary(raylib);
 
