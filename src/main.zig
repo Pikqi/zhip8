@@ -226,7 +226,7 @@ fn draw_raylib(zhip8: *zhip.Zhip8, rom_selection: *RomSelection) !void {
     if (!GUI_ENABLE) return;
     var y: f32 = GUI_MARGIN;
 
-    _ = rl.GuiLabel(.{ .x = GUI_MARGIN, .y = y, .height = GUI_BASE_HEIGHT, .width = GUI_WIDHT }, "Clock speed 200-1000Mhz");
+    _ = rl.GuiLabel(.{ .x = GUI_MARGIN, .y = y, .height = GUI_BASE_HEIGHT, .width = GUI_WIDHT }, "Clock speed 200-1000hz");
     new_row(&y);
     _ = rl.GuiSlider(.{
         .x = GUI_MARGIN,
